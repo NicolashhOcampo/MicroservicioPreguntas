@@ -1,0 +1,22 @@
+# Env files (commit only examples)
+.env
+.env.*
+!.env.example
+!.env.sample
+
+# Editors / IDE
+.vscode/
+*.code-workspace
+.idea/
+*.iml
+
+# Python
+__pycache__/
+*.py[cod]
+.Python
+env/
+.venv/
+pip-wheel-metadata/
+.mypy_cache/
+.pytest_cache/
+.tox/
