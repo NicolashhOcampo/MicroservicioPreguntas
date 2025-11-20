@@ -1,5 +1,5 @@
 import requests
-from .errors import InvalidAuth, ArticleNotFound, InvalidArticleId
+from .errors import InvalidAuthError, ArticleNotFoundError, InvalidArticleIdError
 
 def getArticle(authKey:str, articleId: str):
     """
@@ -8,7 +8,7 @@ def getArticle(authKey:str, articleId: str):
     articleId: string El ID del artículo a obtener
     """
     if (not isinstance(authKey, str) or len(authKey) == 0):
-        raise InvalidAuth()
+        raise InvalidAuthError()
 
     headers = {"Authorization": authKey}
 
@@ -16,13 +16,13 @@ def getArticle(authKey:str, articleId: str):
     response = requests.get(url, headers=headers)
     print("Article service response status:", response.status_code)
     if (response.status_code == 401):
-        raise InvalidAuth()
+        raise InvalidAuthError()
     
     if (response.status_code == 404):
-        raise ArticleNotFound()
+        raise ArticleNotFoundError()
     
     if(response.status_code == 400):
-        raise InvalidArticleId()
+        raise InvalidArticleIdError()
     
     if(response.status_code != 200):
         raise Exception("Error fetching article")

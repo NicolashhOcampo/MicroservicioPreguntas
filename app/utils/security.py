@@ -1,7 +1,7 @@
 import requests
 import redis
 import json
-from .errors import InvalidAuth
+from .errors import InvalidAuthError
 
 r = redis.Redis(host='localhost', port=6379, db=1)
 def normalizeAuthKey(authKey: str):
@@ -23,7 +23,7 @@ def isValidToken(authKey:str):
     authKey: string El header Authorization enviado por el cliente
     """
     if (not isinstance(authKey, str) or len(authKey) == 0):
-        raise InvalidAuth()
+        raise InvalidAuthError()
 
     authKeyNormalized = normalizeAuthKey(authKey)
     cached = r.get(authKeyNormalized)
@@ -38,11 +38,11 @@ def isValidToken(authKey:str):
     response = requests.get(url, headers=headers)
 
     if (response.status_code != 200):
-        raise InvalidAuth()
+        raise InvalidAuthError()
 
     result = response.json()
     if (len(result) == 0):
-        raise InvalidAuth()
+        raise InvalidAuthError()
 
     r.setex(authKeyNormalized, 300, json.dumps(result))  
     return result

@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 from sqlmodel import Session
 from starlette.middleware.sessions import SessionMiddleware
 from contextlib import asynccontextmanager
-from app.utils.errors import InvalidAuth
+from app.utils.errors import InvalidAuthError
 from app.config.db import init_db, get_session
 from app.utils.security import isValidToken
 from app.routes.question import router as question_router
@@ -48,13 +48,13 @@ async def add_process_time_header(request: Request, call_next):
         authorization = request.headers.get("Authorization", "")
         print("Authorization header:", authorization)
         if not authorization:
-            raise InvalidAuth()
+            raise InvalidAuthError()
         
         user = isValidToken(authorization)
         request.state.user = user
         response = await call_next(request)
         return response
-    except InvalidAuth:
+    except InvalidAuthError:
         return JSONResponse(status_code=401, content={"detail": "Invalid authentication"})
     except Exception as e:
         return JSONResponse(status_code=500, content={"detail": str(e)})

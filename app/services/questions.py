@@ -1,12 +1,20 @@
 from sqlmodel import Session, select
 from app.models import Question
 from app.schemas.questions import QuestionCreateRequest
-
+from app.utils.errors import QuestionNotFoundError, QuestionDisabledError, QuestionAlreadyAnsweredError, QuestionForbiddenError, ArticleDisabledError, ArticleNotFoundError
+from app.utils.articles import getArticle
 
 class QuestionService:
     
     @staticmethod
-    def create_question(session: Session, question_data: QuestionCreateRequest, user_id: str):
+    def create_question(session: Session, question_data: QuestionCreateRequest, user_id: str, token: str):
+        
+        article = getArticle(token, question_data.article_id)
+        
+        
+        if(article["enabled"] == False):
+            raise ArticleDisabledError()
+        
         new_question = Question(
             text=question_data.text,
             user_id=user_id,
@@ -26,6 +34,8 @@ class QuestionService:
     @staticmethod
     def get_question_by_id(session: Session, question_id: int):
         question = session.get(Question, question_id)
+        if question is None:
+            raise QuestionNotFoundError()
         return question
     
     @staticmethod
@@ -35,13 +45,23 @@ class QuestionService:
         return results.all()
     
     @staticmethod
-    def update_question(session: Session, question_id: int, new_text: str):
+    def update_question(session: Session, question_id: int, new_text: str, user_id: str):
         question = session.get(Question, question_id)
-        if question:
-            question.text = new_text
-            session.add(question)
-            session.commit()
-            session.refresh(question)
+        if question is None:
+            raise QuestionNotFoundError()
+        
+        if not question.enabled:
+            raise QuestionDisabledError()
+        
+        if question.answer is not None:
+            raise QuestionAlreadyAnsweredError()
+        
+        if question.user_id != user_id:
+            raise QuestionForbiddenError()
+        
+        question.text = new_text
+        session.commit()
+        session.refresh(question)
         return question
     
     @staticmethod

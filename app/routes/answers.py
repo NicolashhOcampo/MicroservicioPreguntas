@@ -5,7 +5,7 @@ from app.services.answers import AnswerService
 from app.services.questions import QuestionService
 from app.schemas.answers import AnswerCreateRequest
 from app.utils.articles import getArticle
-from app.utils.errors import ArticleNotFound, InvalidAuth, InvalidArticleId
+from app.utils.errors import AnswerNotFoundError, ArticleNotFoundError, InvalidAuthError, InvalidArticleIdError, QuestionDisabledError, NotAuthorizedToAnswerError, QuestionNotFoundError, QuestionAlreadyAnsweredError
 
 router = APIRouter(prefix="/answers", tags=["answers"])
 
@@ -13,29 +13,24 @@ router = APIRouter(prefix="/answers", tags=["answers"])
 def create_answer(request: Request, answer: AnswerCreateRequest, session: Session = Depends(get_session)):
     try:
         user = request.state.user
-        question = QuestionService.get_question_by_id(session, answer.question_id)
-        if not question:
-            raise HTTPException(status_code=404, detail="Question not found")
-        
-        if question.enabled == False:
-            raise HTTPException(status_code=400, detail="Cannot answer a disabled question")
-    
-        article = getArticle(request.headers.get("Authorization", ""), question.article_id)
-        print(article)
-        if(article["userId"] != user["id"]):
-            print("Article userId:", article["userId"])
-            print("Request userId:", user["id"])
-            raise HTTPException(status_code=403, detail="Not authorized to answer this question")
-        
-        answer_created = AnswerService.create_answer(session, answer, user["id"])
+        token = request.headers.get("Authorization", "")        
+        answer_created = AnswerService.create_answer(session, answer, user["id"], token)
         return answer_created
     
-    except InvalidAuth:
+    except InvalidAuthError:
         raise HTTPException(status_code=401, detail="Invalid authorization")
-    except InvalidArticleId:
+    except InvalidArticleIdError:
         raise HTTPException(status_code=400, detail="Invalid article ID")
-    except ArticleNotFound:
+    except ArticleNotFoundError:
         raise HTTPException(status_code=404, detail="Article not found")
+    except QuestionNotFoundError:
+        raise HTTPException(status_code=404, detail="Question not found")
+    except QuestionDisabledError:
+        raise HTTPException(status_code=400, detail="Cannot answer a disabled question")
+    except NotAuthorizedToAnswerError:
+        raise HTTPException(status_code=403, detail="Not authorized to answer this question")
+    except QuestionAlreadyAnsweredError:
+        raise HTTPException(status_code=400, detail="Question has already been answered")
     
 @router.get("/")
 def get_answers(session: Session = Depends(get_session)):
@@ -44,7 +39,8 @@ def get_answers(session: Session = Depends(get_session)):
 
 @router.get("/{answer_id}")
 def get_answer(answer_id: int, session: Session = Depends(get_session)):
-    answer = AnswerService.get_answer_by_id(session, answer_id)
-    if not answer:
+    try:
+        answer = AnswerService.get_answer_by_id(session, answer_id)
+        return answer
+    except AnswerNotFoundError:
         raise HTTPException(status_code=404, detail="Answer not found")
-    return answer
