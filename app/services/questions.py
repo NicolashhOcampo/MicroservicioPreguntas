@@ -3,6 +3,7 @@ from app.models import Question
 from app.schemas.questions import QuestionCreateRequest
 from app.utils.errors import QuestionNotFoundError, QuestionDisabledError, QuestionAlreadyAnsweredError, QuestionForbiddenError, ArticleDisabledError, ArticleNotFoundError
 from app.utils.articles import getArticle
+from app.rabbit.stats_publisher import send_question_created_message
 
 class QuestionService:
     
@@ -23,6 +24,9 @@ class QuestionService:
         session.add(new_question)
         session.commit()
         session.refresh(new_question)
+        
+        send_question_created_message(new_question.id, user_id)
+        
         return new_question
     
     @staticmethod
@@ -71,5 +75,6 @@ class QuestionService:
         questions = results.all()
         for question in questions:
             question.enabled = False
-            session.add(question)
+            if question.answer is not None:
+                question.answer.enabled = False
         session.commit()

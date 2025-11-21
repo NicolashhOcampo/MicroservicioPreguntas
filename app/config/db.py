@@ -1,7 +1,11 @@
 from sqlmodel import create_engine, SQLModel, Session
 from app.models import Question, Answer
+from dotenv import load_dotenv
+import os
 
-DATABASE_URL="postgresql://postgres:admin123@localhost:5050/midb"
+load_dotenv()
+
+DATABASE_URL= os.getenv("DATABASE_URL")
 
 engine = create_engine(DATABASE_URL, echo=True)
 

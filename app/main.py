@@ -2,17 +2,18 @@ from fastapi import Depends, FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlmodel import Session
-from starlette.middleware.sessions import SessionMiddleware
 from contextlib import asynccontextmanager
 from app.utils.errors import InvalidAuthError
 from app.config.db import init_db, get_session
 from app.utils.security import isValidToken
 from app.routes.question import router as question_router
 from app.routes.answers import router as answer_router
+from app.rabbit.start_rabbit import start_rabbit_consumers
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    start_rabbit_consumers()
     yield
 
 app = FastAPI(lifespan=lifespan)
@@ -36,7 +37,6 @@ async def add_process_time_header(request: Request, call_next):
     # Skip authentication for documentation routes
     public_routes = ["/docs", "/redoc", "/openapi.json"]
 
-    # 🔥 IMPORTANTE: saltar el preflight OPTIONS
     if request.method == "OPTIONS":
         return await call_next(request)
 

@@ -22,6 +22,8 @@ class AnswerService:
         article = getArticle(token, question.article_id)
 
         if article["userId"] != user_id:
+            print("article user id: ", article["userId"])
+            print("current user id: ", user_id)
             raise NotAuthorizedToAnswerError()
 
         new_answer = Answer(
@@ -49,8 +51,13 @@ class AnswerService:
         return answer
 
     @staticmethod
-    def get_answers_by_question(session: Session, question_id: int):
+    def get_answer_by_question(session: Session, question_id: int):
         statement = select(Answer).where(Answer.question_id == question_id)
         results = session.exec(statement)
-        return results.first()
+        answer = results.first()
+        
+        if answer is None:
+            raise AnswerNotFoundError()
+        
+        return answer
     

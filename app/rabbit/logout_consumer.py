@@ -2,7 +2,7 @@ import json
 import pika, sys, os
 from app.utils.security import removeTokenFromCache
 
-def main():
+def start_logout_consumer():
     connection = pika.BlockingConnection(
         pika.ConnectionParameters(host='localhost')
     )
@@ -29,7 +29,7 @@ def main():
         print("Token removed from cache:", res)
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
-    print(" [*] Waiting for fanout messages. CTRL+C to exit.")
+    print("[logout] Waiting for messages.")
 
     channel.basic_consume(
         queue=queue_name,
@@ -41,7 +41,7 @@ def main():
 
 if __name__ == '__main__':
     try:
-        main()
+        start_logout_consumer()
     except KeyboardInterrupt:
         print('Interrupted')
         try:

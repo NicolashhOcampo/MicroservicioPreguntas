@@ -2,7 +2,7 @@ import json
 import pika, sys, os
 from app.services.questions import QuestionService
 from app.config.db import get_session_sync
-def main():
+def start_article_deleted_consumer():
     connection = pika.BlockingConnection(
         pika.ConnectionParameters(host='localhost')
     )
@@ -13,7 +13,7 @@ def main():
         exchange_type='direct',
         durable=False
     )
-    # Declaramos la cola durable
+
     channel.queue_declare(queue='article_deleted', durable=False)
 
     # Bind de la cola al exchange "catalog" usando "article_deleted" como routing_key
@@ -24,13 +24,13 @@ def main():
     )
 
     def callback(ch, method, properties, body):
-        wrapper = json.loads(body)
-        data = wrapper["message"]
-        print("Article deleted:", data['articleId'])
-        QuestionService.delete_questions_by_article(session=get_session_sync(), article_id=data['articleId'])
+        data = json.loads(body)
+        message = data["message"]
+        print("Article deleted:", message['articleId'])
+        QuestionService.delete_questions_by_article(session=get_session_sync(), article_id=message['articleId'])
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
-    print(" [*] Waiting for messages. To exit press CTRL+C")
+    print("[article_deleted] Waiting for messages.")
 
     # Consumimos sin auto-ack
     channel.basic_consume(
@@ -43,7 +43,7 @@ def main():
 
 if __name__ == '__main__':
     try:
-        main()
+        start_article_deleted_consumer()
     except KeyboardInterrupt:
         print('Interrupted')
         try:

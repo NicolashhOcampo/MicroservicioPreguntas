@@ -6,10 +6,12 @@ from app.services.questions import QuestionService
 from app.schemas.answers import AnswerCreateRequest
 from app.utils.articles import getArticle
 from app.utils.errors import AnswerNotFoundError, ArticleNotFoundError, InvalidAuthError, InvalidArticleIdError, QuestionDisabledError, NotAuthorizedToAnswerError, QuestionNotFoundError, QuestionAlreadyAnsweredError
+from app.models import Answer
+
 
 router = APIRouter(prefix="/answers", tags=["answers"])
 
-@router.post("/", status_code=201)
+@router.post("/", status_code=201, response_model=Answer)
 def create_answer(request: Request, answer: AnswerCreateRequest, session: Session = Depends(get_session)):
     try:
         user = request.state.user
@@ -41,6 +43,14 @@ def get_answers(session: Session = Depends(get_session)):
 def get_answer(answer_id: int, session: Session = Depends(get_session)):
     try:
         answer = AnswerService.get_answer_by_id(session, answer_id)
+        return answer
+    except AnswerNotFoundError:
+        raise HTTPException(status_code=404, detail="Answer not found")
+    
+@router.get("/question/{question_id}")
+def get_answer_by_question(question_id: int, session: Session = Depends(get_session)):
+    try:
+        answer = AnswerService.get_answer_by_question(session, question_id)
         return answer
     except AnswerNotFoundError:
         raise HTTPException(status_code=404, detail="Answer not found")
